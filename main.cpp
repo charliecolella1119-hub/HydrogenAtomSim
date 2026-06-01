@@ -456,3 +456,11 @@ int main()
 -framework IOKit \
 -framework CoreVideo
 -------------------------------------------------------------------------*/
+
+/*--------------------
+mkdir build
+cd build
+cmake ..
+cmake --build .
+./HydrogenAtomSim
+--------------------*/
