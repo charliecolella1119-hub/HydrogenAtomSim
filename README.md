@@ -105,15 +105,15 @@ g++ -std=c++17 main.cpp Hydrogen.cpp Shader.cpp Camera.cpp -o main \
 
 ## Demo
 
-| 1s Orbital | 2p Orbital |
+| Image 1 | Image 2 |
 |---|---|
 | ![image1](screenshots/1.png) | ![image2](screenshots/2.png) |
 
-| 3d Orbital | Clipping Plane |
+| Image 3 | Image 4 |
 |---|---|
 | ![image3](screenshots/3.png) | ![image4](screenshots/4.png) |
 
-| Slice Mode |
+| Image 5 |
 |---|
 | ![image5](screenshots/5.png) |
 
