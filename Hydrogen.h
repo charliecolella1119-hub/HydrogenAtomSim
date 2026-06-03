@@ -21,7 +21,13 @@ std::vector<float> generateHydrogenOrbital(
     int count,
     bool sliceMode,
     bool clippingMode,
-    float clippingZ
+    float clippingZ,
+    int colorMapMode,
+    int sliceAxis,
+    float sliceThickness,
+    bool sphericalCutoutMode,
+    glm::vec3 cutoutCenter,
+    float cutoutRadius
 );
 
 float getCameraDistance(const QuantumState& state);

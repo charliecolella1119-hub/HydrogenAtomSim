@@ -173,40 +173,72 @@ float getMaxRadius(const QuantumState& state)
     return 10.0f;
 }
 
-glm::vec3 densityColor(float density, float psi)
+glm::vec3 mixColor(glm::vec3 a, glm::vec3 b, float t)
+{
+    return a * (1.0f - t) + b * t;
+}
+
+glm::vec3 densityColor(float density, float psi, int colorMapMode)
 {
     density = std::sqrt(density);
 
     if (density < 0.0f) density = 0.0f;
     if (density > 1.0f) density = 1.0f;
 
-    // Low density = dark blue
-    // Medium density = purple/orange
-    // High density = yellow-white
-
-    glm::vec3 low  = glm::vec3(0.05f, 0.10f, 0.45f);
-    glm::vec3 mid  = glm::vec3(0.80f, 0.20f, 0.90f);
-    glm::vec3 high = glm::vec3(1.00f, 0.85f, 0.25f);
-
     glm::vec3 color;
 
-    if (density < 0.5f)
+    // Gold
+    if (colorMapMode == 0)
     {
-        float t = density / 0.5f;
-        color = low * (1.0f - t) + mid * t;
-    }
-    else
-    {
-        float t = (density - 0.5f) / 0.5f;
-        color = mid * (1.0f - t) + high * t;
+        glm::vec3 low  = glm::vec3(0.25f, 0.10f, 0.00f);
+        glm::vec3 mid  = glm::vec3(1.00f, 0.55f, 0.00f);
+        glm::vec3 high = glm::vec3(1.00f, 0.95f, 0.35f);
+
+        if (density < 0.5f)
+            color = mixColor(low, mid, density / 0.5f);
+        else
+            color = mixColor(mid, high, (density - 0.5f) / 0.5f);
     }
 
-    // Slight phase tint
-    if (psi < 0.0f)
+    // Plasma
+    else if (colorMapMode == 1)
     {
-        color = glm::vec3(color.r * 0.7f,
-                          color.g * 0.8f,
-                          color.b * 1.2f);
+        glm::vec3 low  = glm::vec3(0.05f, 0.00f, 0.25f);
+        glm::vec3 mid  = glm::vec3(0.85f, 0.10f, 0.85f);
+        glm::vec3 high = glm::vec3(1.00f, 0.85f, 0.10f);
+
+        if (density < 0.5f)
+            color = mixColor(low, mid, density / 0.5f);
+        else
+            color = mixColor(mid, high, (density - 0.5f) / 0.5f);
+    }
+
+    // Viridis-like
+    else if (colorMapMode == 2)
+    {
+        glm::vec3 low  = glm::vec3(0.05f, 0.10f, 0.35f);
+        glm::vec3 mid  = glm::vec3(0.00f, 0.65f, 0.45f);
+        glm::vec3 high = glm::vec3(0.90f, 1.00f, 0.35f);
+
+        if (density < 0.5f)
+            color = mixColor(low, mid, density / 0.5f);
+        else
+            color = mixColor(mid, high, (density - 0.5f) / 0.5f);
+    }
+
+    // Phase coloring
+    else if (colorMapMode == 3)
+    {
+        if (psi >= 0.0f)
+            color = glm::vec3(0.0f, density, density);
+        else
+            color = glm::vec3(density, 0.0f, density);
+    }
+
+    // White cloud
+    else
+    {
+        color = glm::vec3(density);
     }
 
     return color;
@@ -217,7 +249,13 @@ std::vector<float> generateHydrogenOrbital(
     int count,
     bool sliceMode,
     bool clippingMode,
-    float clippingZ)
+    float clippingZ,
+    int colorMapMode,
+    int sliceAxis,
+    float sliceThickness,
+    bool sphericalCutoutMode,
+    glm::vec3 cutoutCenter,
+    float cutoutRadius)
 {
     std::vector<float> data;
 
@@ -246,9 +284,21 @@ std::vector<float> generateHydrogenOrbital(
        
         float sliceThickness = 0.75f;
 
-        if (sliceMode && std::abs(z) > sliceThickness)
+        if (sliceMode)
         {
-            continue;
+            float axisValue = z;
+
+            if (sliceAxis == 0)
+                axisValue = x;
+            else if (sliceAxis == 1)
+                axisValue = y;
+            else
+                axisValue = z;
+
+            if (std::abs(axisValue) > sliceThickness)
+            {
+                continue;
+            }
         }
 
         if (clippingMode && z > clippingZ)
@@ -273,7 +323,7 @@ std::vector<float> generateHydrogenOrbital(
                 density = 0.35f;
             }
 
-            glm::vec3 color = densityColor(density, psi);
+            glm::vec3 color = densityColor(density, psi, colorMapMode);
 
             float distanceFromCenter = std::sqrt(x*x + y*y + z*z);
 
@@ -285,6 +335,16 @@ std::vector<float> generateHydrogenOrbital(
 
             float shell = std::sin(distanceFromCenter * 0.9f);
             float shellBoost = 0.85f + 0.15f * shell;
+
+            if (sphericalCutoutMode)
+            {
+                glm::vec3 p = glm::vec3(x, y, z);
+
+                if (glm::length(p - cutoutCenter) < cutoutRadius)
+                {
+                    continue;
+                }   
+            }
 
             color *= shellBoost;
 
