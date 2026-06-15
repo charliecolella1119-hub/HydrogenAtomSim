@@ -18,32 +18,17 @@ Users can interactively explore different hydrogen orbitals by changing the prin
 
 ## Features
 
-* General hydrogen wavefunction implementation
-* Support for arbitrary valid quantum states (n,l,m)
-* Real-time orbital generation
-* 3D camera controls
-* Density-based coloring
-* Slice mode visualization
-* Interactive clipping planes
-* Probability-density particle rendering
-* OpenGL rendering pipeline
+- Hydrogen orbital visualization with quantum numbers n, l, m
+- Particle rendering mode
+- Volume ray marching mode
+- Flowing probability-current particle mode
+- Color maps
+- Slicing and clipping controls
+- ImGui interface
 
 ## Controls
 
-| Key         | Action                       |
-| ----------- | ---------------------------- |
-| Up Arrow    | Increase n                   |
-| Down Arrow  | Decrease n                   |
-| Right Arrow | Increase l                   |
-| Left Arrow  | Decrease l                   |
-| M           | Increase m                   |
-| N           | Decrease m                   |
-| Mouse Drag  | Rotate camera                |
-| Mouse Wheel | Zoom                         |
-| S           | Toggle slice mode            |
-| C           | Toggle clipping mode         |
-| [           | Move clipping plane backward |
-| ]           | Move clipping plane forward  |
+Use the ImGui panel to adjust quantum numbers, rendering style, volume settings, color maps, and slicing tools.
 
 ## Physics
 
@@ -105,17 +90,13 @@ g++ -std=c++17 main.cpp Hydrogen.cpp Shader.cpp Camera.cpp -o main \
 
 ## Demo
 
-| Image 1 | Image 2 |
-|---|---|
-| ![screenshots:1](screenshots/1.png) | ![screenshots:2](screenshots/2.png) |
+### Particle Rendering Mode
 
-| Image 3 | Image 4 |
-|---|---|
-| ![screenshots:3](screenshots/3.png) | ![screenshots:4](screenshots/4.png) |
+<video src="demo/particle-mode.mov" controls width="700"></video>
 
-| Image 5 |
-|---|
-| ![screenshots:5](screenshots/5.png) |
+### Volume Ray Marching Mode
+
+<video src="demo/volume-ray-march.mov" controls width="700"></video>
 
 ## License
 
