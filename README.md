@@ -107,15 +107,15 @@ g++ -std=c++17 main.cpp Hydrogen.cpp Shader.cpp Camera.cpp -o main \
 
 | Image 1 | Image 2 |
 |---|---|
-| ![image1](screenshots/1.png) | ![image2](screenshots/2.png) |
+| ![screenshots:1](screenshots/1.png) | ![screenshots:2](screenshots/2.png) |
 
 | Image 3 | Image 4 |
 |---|---|
-| ![image3](screenshots/3.png) | ![image4](screenshots/4.png) |
+| ![screenshots:3](screenshots/3.png) | ![screenshots:4](screenshots/4.png) |
 
 | Image 5 |
 |---|
-| ![image5](screenshots/5.png) |
+| ![screenshots:5](screenshots/5.png) |
 
 ## License
 

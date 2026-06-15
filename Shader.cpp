@@ -17,14 +17,15 @@ uniform float particleSize;
 
 void main()
 {
-    gl_Position = projection * view * model * vec4(position, 1.0);
+    gl_Position =
+        projection * view * model * vec4(position, 1.0);
+
     gl_PointSize = particleSize;
     particleColor = color;
 }
 )";
 
-
-const char* fragmentShaderSource = R"(
+const char* particleFragmentShaderSource = R"(
 #version 330 core
 
 in vec3 particleColor;
@@ -33,42 +34,35 @@ out vec4 FragColor;
 uniform float brightness;
 uniform float alphaScale;
 uniform float lightingStrength;
-uniform float depthFadeStrength;
+uniform float spriteSoftness;
 
 void main()
 {
     vec2 coord = gl_PointCoord * 2.0 - 1.0;
-
     float r2 = dot(coord, coord);
 
     if (r2 > 1.0)
-    {
         discard;
-    }
 
     float z = sqrt(1.0 - r2);
-
     vec3 normal = normalize(vec3(coord.x, coord.y, z));
 
-    vec3 lightDir = normalize(vec3(-0.4, 0.7, 1.0));
+    vec3 lightDir = normalize(vec3(-0.4, 0.6, 1.0));
 
     float diffuse = max(dot(normal, lightDir), 0.0);
+    float rim = pow(1.0 - z, 2.0);
+    float gaussian = exp(-r2 * spriteSoftness);
 
-    float ambient = 0.25;
+    vec3 shadedColor =
+        particleColor *
+        brightness *
+        (0.25 + diffuse * lightingStrength);
 
-    float lighting = ambient + diffuse * 0.9;
+    shadedColor += particleColor * rim * 0.8;
 
-    float alpha = alphaScale * z;
+    float alpha = alphaScale * gaussian;
 
-    float depthFade = 1.0 - gl_FragCoord.z;
-    depthFade = clamp(depthFade * depthFadeStrength, 0.15, 1.0);
-
-    FragColor = vec4(particleColor *
-                 lighting *
-                 brightness *
-                 lightingStrength *
-                 depthFade,
-                 alpha);
+    FragColor = vec4(shadedColor, alpha);
 }
 )";
 
@@ -119,6 +113,15 @@ uniform float clippingZ;
 uniform bool sphericalCutoutMode;
 uniform vec3 cutoutCenter;
 uniform float cutoutRadius;
+
+uniform bool superpositionMode;
+
+uniform int n2;
+uniform int l2;
+uniform int m2;
+
+uniform float superpositionMix;
+uniform float superpositionPhase;
 
 // --------------------------
 // Rotation helpers go here
@@ -229,7 +232,7 @@ float associatedLegendre(int l, int m, float x)
     return pll;
 }
 
-float hydrogenPsi(vec3 p)
+float hydrogenPsiState(vec3 p, int n, int l, int m)
 {
     float r = length(p);
 
@@ -237,10 +240,6 @@ float hydrogenPsi(vec3 p)
     {
         r = 0.0001;
     }
-
-    int n = quantumN;
-    int l = quantumL;
-    int m = quantumM;
 
     if (n < 1 || l < 0 || l >= n || abs(m) > l)
     {
@@ -265,13 +264,24 @@ float hydrogenPsi(vec3 p)
     float angular = 0.0;
 
     if (m > 0)
+    {
         angular = P * cos(float(m) * phi);
+    }
     else if (m < 0)
+    {
         angular = P * sin(float(abs(m)) * phi);
+    }
     else
+    {
         angular = P;
+    }
 
     return radial * angular;
+}
+
+float hydrogenPsi(vec3 p)
+{
+    return hydrogenPsiState(p, quantumN, quantumL, quantumM);
 }
 
 vec3 mixColor(vec3 a, vec3 b, float t)
@@ -386,15 +396,32 @@ void main()
             continue;
         }
 
-        vec3 orbitalPos = samplePos * orbitalScale / volumeScale;
+       vec3 orbitalPos = samplePos * orbitalScale / volumeScale;
 
-        float psi = hydrogenPsi(orbitalPos);
+        float psi = 0.0;
+
+        if (superpositionMode)
+        {
+            float psiA = hydrogenPsiState(orbitalPos, quantumN, quantumL, quantumM);
+            float psiB = hydrogenPsiState(orbitalPos, n2, l2, m2);
+
+            float mixA = sqrt(1.0 - superpositionMix);
+            float mixB = sqrt(superpositionMix);
+
+            psi = mixA * psiA + mixB * cos(superpositionPhase) * psiB;
+        }
+        else
+        {
+            psi = hydrogenPsi(orbitalPos);
+        }
+
         float density = psi * psi;
         density *= volumeDensity;
 
-        vec3 sampleColor = densityColor(density, psi) *
-                   density *
-                   volumeBrightness;
+        vec3 sampleColor =
+            densityColor(density, psi) *
+            density *
+            volumeBrightness;
 
         float alpha = clamp(density * 0.04, 0.0, 0.15);
 
@@ -405,6 +432,37 @@ void main()
     }
 
     FragColor = accum;
+}
+)";
+
+const char* currentVertexShaderSource = R"(
+#version 330 core
+
+layout (location = 0) in vec3 position;
+layout (location = 1) in vec3 color;
+
+out vec3 lineColor;
+
+uniform mat4 model;
+uniform mat4 view;
+uniform mat4 projection;
+
+void main()
+{
+    gl_Position = projection * view * model * vec4(position, 1.0);
+    lineColor = color;
+}
+)";
+
+const char* currentFragmentShaderSource = R"(
+#version 330 core
+
+in vec3 lineColor;
+out vec4 FragColor;
+
+void main()
+{
+    FragColor = vec4(lineColor, 0.75);
 }
 )";
 
@@ -446,7 +504,7 @@ GLuint createParticleShaderProgram()
     checkShaderCompile(vertexShader, "Vertex");
 
     GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+    glShaderSource(fragmentShader, 1, &particleFragmentShaderSource, nullptr);
     glCompileShader(fragmentShader);
     checkShaderCompile(fragmentShader, "Fragment");
 
@@ -475,6 +533,32 @@ GLuint createVolumeShaderProgram()
     glShaderSource(fragmentShader, 1, &volumeFragmentShaderSource, nullptr);
     glCompileShader(fragmentShader);
     checkShaderCompile(fragmentShader, "Volume Fragment");
+
+    GLuint shaderProgram = glCreateProgram();
+
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+
+    glLinkProgram(shaderProgram);
+    checkProgramLink(shaderProgram);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProgram;
+}
+
+GLuint createCurrentShaderProgram()
+{
+    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &currentVertexShaderSource, nullptr);
+    glCompileShader(vertexShader);
+    checkShaderCompile(vertexShader, "Current Vertex");
+
+    GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &currentFragmentShaderSource, nullptr);
+    glCompileShader(fragmentShader);
+    checkShaderCompile(fragmentShader, "Current Fragment");
 
     GLuint shaderProgram = glCreateProgram();
 

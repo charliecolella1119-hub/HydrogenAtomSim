@@ -5,6 +5,8 @@
 
 GLuint createParticleShaderProgram();
 GLuint createVolumeShaderProgram();
+GLuint createCurrentShaderProgram();
 
 void checkShaderCompile(GLuint shader, const std::string& name);
 void checkProgramLink(GLuint program);
+void checkCurrentShaderCompile(GLuint shader, const std::string& name);
