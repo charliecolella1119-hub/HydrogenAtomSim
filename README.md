@@ -92,11 +92,11 @@ g++ -std=c++17 main.cpp Hydrogen.cpp Shader.cpp Camera.cpp -o main \
 
 ### Particle Rendering Mode
 
-<video src="demo/particle-mode.mov" controls width="700"></video>
+<video src="demo:particle-mode.mp4" controls width="700"></video>
 
 ### Volume Ray Marching Mode
 
-<video src="demo/volume-ray-march.mov" controls width="700"></video>
+<video src="demo:volume-ray-march.mp4" controls width="700"></video>
 
 ## License
 
