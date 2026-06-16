@@ -73,20 +73,14 @@ Install the required libraries:
 brew install glfw glew glm
 ```
 ### macOS Build
-```
-g++ -std=c++17 main.cpp Hydrogen.cpp Shader.cpp Camera.cpp -o main \
--I/opt/homebrew/include \
--L/opt/homebrew/lib \
--lglfw \
--lGLEW \
--framework OpenGL \
--framework Cocoa \
--framework IOKit \
--framework CoreVideo
-```
-### run 
 
-./main
+```bash
+mkdir build
+cd build
+cmake ..
+cmake --build .
+./HydrogenAtomSim
+```
 
 ## Demo
 
