@@ -23,6 +23,7 @@
 // Global Settings
 // --------------------
 
+// Slicing / clipping
 bool sliceMode = false;
 bool clippingMode = false;
 float clippingZ = 0.0f;
@@ -34,29 +35,46 @@ glm::vec3 cutoutCenter = glm::vec3(0.0f);
 int sliceAxis = 2;
 float sliceThickness = 0.75f;
 
-int pointCount = 100000;
+// Box clipping
+bool boxClipMode = false;
 
-float particleSize = 120.0f;
-float brightness = 5.0f;
-float alphaScale = 0.12f;
-float lightingStrength = 2.5f;
-float depthFadeStrength = 2.3f;
-float spriteSoftness = 3.5f;
+glm::vec3 boxClipCenter = glm::vec3(0.0f);
+glm::vec3 boxClipSize = glm::vec3(8.0f, 8.0f, 8.0f);
 
-bool additiveBlend = true;
+// Sampling
+int pointCount = 500000;
 
+// Particle rendering
+int particleStyle = 1;
+// 0 = Gaussian
+// 1 = Lit Ball / Sphere Impostor
+// 2 = Bright Core
+
+float particleSize = 3.0f;
+float ballParticleSize = 3.0f;
+
+float brightness = 1.25f;
+float alphaScale = 0.65f;
+float lightingStrength = 1.6f;
+float depthFadeStrength = 2.8f;
+float spriteSoftness = 1.4f;
+
+bool additiveBlend = false;
+
+// Flowing probability-current particles
 bool flowingParticlesMode = false;
 std::vector<float> flowingPoints;
 
 float flowSpeed = 0.8f;
 float flowConfinement = 0.08f;
 float flowRespawnDistance = 1.5f;
-float ballParticleSize = 90.0f;
 
+// Render modes
 int renderMode = 0;
 // 0 = Particles
 // 1 = Volume Ray March
 
+// Volume ray marching
 float volumeScale = 2.0f;
 float volumeBrightness = 4.0f;
 float volumeDensity = 1.0f;
@@ -64,6 +82,7 @@ float volumeZoom = 1.5f;
 float volumeBounds = 4.0f;
 float volumeAutoScale = 1.0f;
 
+// Superposition
 bool superpositionMode = false;
 int n2 = 2;
 int l2 = 1;
@@ -71,9 +90,10 @@ int m2 = 0;
 float superpositionMix = 0.5f;
 float superpositionSpeed = 1.0f;
 
-glm::vec3 backgroundColor = glm::vec3(0.02f, 0.02f, 0.05f);
+// Color / visual style
+glm::vec3 backgroundColor = glm::vec3(0.92f, 0.94f, 0.94f);
 
-int colorMapMode = 0;
+int colorMapMode = 2;
 // 0 = Gold
 // 1 = Plasma
 // 2 = Viridis
@@ -172,6 +192,51 @@ void updateFlowingParticles(float dt,
     }
 }
 
+std::vector<float> applyBoxClipFilter(const std::vector<float>& inputPoints)
+{
+    if (!boxClipMode)
+    {
+        return inputPoints;
+    }
+
+    std::vector<float> filtered;
+    filtered.reserve(inputPoints.size());
+
+    glm::vec3 halfSize = boxClipSize * 0.5f;
+
+    glm::vec3 minCorner = boxClipCenter - halfSize;
+    glm::vec3 maxCorner = boxClipCenter + halfSize;
+
+    for (size_t i = 0; i + 5 < inputPoints.size(); i += 6)
+    {
+        glm::vec3 p(inputPoints[i],
+                    inputPoints[i + 1],
+                    inputPoints[i + 2]);
+
+        bool inside =
+            p.x >= minCorner.x && p.x <= maxCorner.x &&
+            p.y >= minCorner.y && p.y <= maxCorner.y &&
+            p.z >= minCorner.z && p.z <= maxCorner.z;
+
+        if (!inside)
+        {
+            filtered.push_back(inputPoints[i]);
+            filtered.push_back(inputPoints[i + 1]);
+            filtered.push_back(inputPoints[i + 2]);
+            filtered.push_back(inputPoints[i + 3]);
+            filtered.push_back(inputPoints[i + 4]);
+            filtered.push_back(inputPoints[i + 5]);
+        }
+    }
+
+    return filtered;
+}
+
+void alignBoxCornerToOrigin()
+{
+    boxClipCenter = boxClipSize * 0.5f;
+}
+
 void updateAtom(GLFWwindow* window,
                 std::vector<float>& points,
                 GLuint VBO,
@@ -181,19 +246,21 @@ void updateAtom(GLFWwindow* window,
 
     cameraDistance = getCameraDistance(state);
 
-    points = generateHydrogenOrbital(
-        state,
-        pointCount,
-        sliceMode,
-        clippingMode,
-        clippingZ,
-        colorMapMode,
-        sliceAxis,
-        sliceThickness,
-        sphericalCutoutMode,
-        cutoutCenter,
-        cutoutRadius
+    std::vector<float> generatedPoints = generateHydrogenOrbital(
+    state,
+    pointCount,
+    sliceMode,
+    clippingMode,
+    clippingZ,
+    colorMapMode,
+    sliceAxis,
+    sliceThickness,
+    sphericalCutoutMode,
+    cutoutCenter,
+    cutoutRadius
     );
+
+    points = applyBoxClipFilter(generatedPoints);
 
     initializeFlowingParticles(points);
     uploadPointsToGPU(points, VBO);
@@ -227,6 +294,7 @@ int main()
         std::cout << "Failed to initialize GLFW\n";
         return -1;
     }
+
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -268,6 +336,8 @@ int main()
 
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
+
+    glEnable(GL_PROGRAM_POINT_SIZE);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE);
@@ -433,6 +503,7 @@ int main()
                 keyPressed = true;
             }
         }
+    
 
         if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_RELEASE &&
             glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE &&
@@ -443,6 +514,7 @@ int main()
         {
             keyPressed = false;
         }
+    
 
         // --------------------
         // ImGui Panel
@@ -457,6 +529,34 @@ int main()
             "Particles",
             "Volume Ray March"
         };
+
+        if (ImGui::Button("Reset View"))
+        {
+            rotationX = 0.0f;
+            rotationY = 0.0f;
+        }
+
+        if (ImGui::Button("Front View"))
+        {
+            rotationX = 0.0f;
+            rotationY = 0.0f;
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Side View"))
+        {
+            rotationX = 0.0f;
+            rotationY = glm::radians(90.0f);
+        }
+
+        ImGui::SameLine();
+
+        if (ImGui::Button("Top View"))
+        {
+            rotationX = glm::radians(90.0f);
+            rotationY = 0.0f;
+        }
 
         ImGui::Combo("Render Mode",
                      &renderMode,
@@ -480,7 +580,7 @@ int main()
 
         if (ImGui::CollapsingHeader("Particle Rendering", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            ImGui::SliderFloat("Particle Size", &particleSize, 2.0f, 300.0f);
+            ImGui::SliderFloat("Particle Size", &particleSize, 2.0f, 150.0f);
             ImGui::SliderFloat("Brightness", &brightness, 0.1f, 10.0f);
             ImGui::SliderFloat("Alpha", &alphaScale, 0.01f, 2.0f);
             ImGui::SliderFloat("Glow", &lightingStrength, 0.1f, 10.0f);
@@ -510,12 +610,68 @@ int main()
 
             ImGui::SliderFloat("Ball Particle Size",
                                &ballParticleSize,
-                               10.0f,
-                               250.0f);
+                               0.5f,
+                               10.0f);
 
             if (state.m == 0)
             {
                 ImGui::Text("m = 0: no azimuthal probability current");
+            }
+        }
+
+        if (ImGui::CollapsingHeader("Visual Presets", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            if (ImGui::Button("Kavang Inspired"))
+            {
+                particleStyle = 1;          // Soft sphere
+                particleSize = 4.0f;
+                ballParticleSize = 4.0f;
+
+                brightness = 1.15f;
+                alphaScale = 0.55f;
+                lightingStrength = 1.25f;
+                spriteSoftness = 1.8f;
+
+                colorMapMode = 1;           // Phase
+                backgroundColor = glm::vec3(0.02f, 0.04f, 0.05f);
+
+                additiveBlend = false;
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("MinutePhysics Bright"))
+            {
+                particleStyle = 1;          // Soft sphere
+                particleSize = 4.0f;
+                ballParticleSize = 4.0f;
+
+                brightness = 1.35f;
+                alphaScale = 0.65f;
+                lightingStrength = 1.45f;
+                spriteSoftness = 1.6f;
+
+                colorMapMode = 2;           // Viridis / green
+                backgroundColor = glm::vec3(0.94f, 0.95f, 0.94f);
+
+                additiveBlend = false;
+            }
+
+            if (ImGui::Button("Soft Scientific"))
+            {
+                particleStyle = 1;          // Bright core / glow
+                particleSize = 4.0f;
+                ballParticleSize = 4.0f;
+
+                brightness = 1.28f;
+                alphaScale = 0.6f;
+                lightingStrength = 1.3f;
+                spriteSoftness = 1.8f;
+
+                colorMapMode = 0;           // Gold
+                backgroundColor = glm::vec3(0.94f, 0.95f, 0.94f);
+
+                additiveBlend = true;
             }
         }
 
@@ -548,6 +704,36 @@ int main()
             ImGui::ColorEdit3("Background", &backgroundColor.x);
         }
 
+       bool previousBoxClipMode = boxClipMode;
+
+        if (ImGui::Checkbox("Box Clip Mode", &boxClipMode))
+        {
+            stateChanged = true;
+
+            if (boxClipMode && !previousBoxClipMode)
+            {
+                alignBoxCornerToOrigin();
+            }
+        }
+
+        if (boxClipMode)
+        {
+            if (ImGui::SliderFloat3("Box Size",
+                            &boxClipSize.x,
+                            0.5f,
+                            30.0f))
+            {
+                alignBoxCornerToOrigin();
+                stateChanged = true;
+            }
+        
+
+            stateChanged |= ImGui::SliderFloat3("Box Center",
+                                        &boxClipCenter.x,
+                                        -20.0f,
+                                        20.0f);
+        }
+        
         if (ImGui::CollapsingHeader("Slicing / Clipping"))
         {
             stateChanged |= ImGui::Checkbox("Slice Mode", &sliceMode);
@@ -630,19 +816,45 @@ int main()
                              0.1f,
                              100.0f);
 
-        if (additiveBlend)
+        const char* particleStyles[] =
         {
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            "Gaussian",
+            "Soft Sphere",
+            "Bright Core"
+        };
+
+        ImGui::Combo("Particle Style",
+             &particleStyle,
+             particleStyles,
+             IM_ARRAYSIZE(particleStyles));
+
+        if (particleStyle == 1)
+        {
+            glEnable(GL_DEPTH_TEST);
+            glDepthMask(GL_TRUE);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         }
         else
         {
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glDepthMask(GL_FALSE);
+
+            if (additiveBlend)
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+            else
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         }
 
         if (renderMode == 0)
         {
             glEnable(GL_DEPTH_TEST);
-            glDepthMask(GL_FALSE);
+            if (particleStyle == 1)
+            {
+                glDepthMask(GL_TRUE);
+            }
+            else
+            {
+                glDepthMask(GL_FALSE);
+            }
 
             glUseProgram(particleShaderProgram);
 
@@ -668,6 +880,9 @@ int main()
 
             glUniform1f(glGetUniformLocation(particleShaderProgram, "spriteSoftness"),
                         spriteSoftness);
+
+            glUniform1i(glGetUniformLocation(particleShaderProgram, "particleStyle"),
+            particleStyle);
 
             glUniformMatrix4fv(
                 glGetUniformLocation(particleShaderProgram, "model"),

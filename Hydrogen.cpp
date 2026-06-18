@@ -18,26 +18,16 @@ void validateQuantumState(QuantumState& state)
 {
     int maxN = 6;
 
-    if (state.n < 1)
-        state.n = 1;
+    if (state.n < 1) state.n = 1;
+    if (state.n > maxN) state.n = maxN;
 
-    if (state.n > maxN)
-        state.n = maxN;
+    if (state.l < 0) state.l = 0;
+    if (state.l > state.n - 1) state.l = state.n - 1;
 
-    if (state.l < 0)
-        state.l = 0;
+    if (state.m < -state.l) state.m = -state.l;
+    if (state.m > state.l) state.m = state.l;
 
-    if (state.l > state.n - 1)
-        state.l = state.n - 1;
-
-    if (state.m < -state.l)
-        state.m = -state.l;
-
-    if (state.m > state.l)
-        state.m = state.l;
-
-    if (state.l == 0)
-        state.m = 0;
+    if (state.l == 0) state.m = 0;
 }
 
 float factorial(int n)
@@ -84,13 +74,11 @@ float associatedLegendre(int l, int m, float x)
         }
     }
 
-    if (l == m)
-        return pmm;
+    if (l == m) return pmm;
 
     float pmmp1 = x * (2.0f * m + 1.0f) * pmm;
 
-    if (l == m + 1)
-        return pmmp1;
+    if (l == m + 1) return pmmp1;
 
     float pll = 0.0f;
 
@@ -134,20 +122,14 @@ float hydrogenPsi(const QuantumState& state,
     float angular = 0.0f;
 
     if (m > 0)
-    {
         angular = P * std::cos(m * phi);
-    }
     else if (m < 0)
-    {
         angular = P * std::sin(std::abs(m) * phi);
-    }
     else
-    {
         angular = P;
-    }
 
     return radial * angular;
-} 
+}
 
 float getVisualScale(const QuantumState& state)
 {
@@ -175,13 +157,14 @@ float getMaxRadius(const QuantumState& state)
 
 glm::vec3 mixColor(glm::vec3 a, glm::vec3 b, float t)
 {
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
+
     return a * (1.0f - t) + b * t;
 }
 
 glm::vec3 densityColor(float density, float psi, int colorMapMode)
 {
-    density = std::sqrt(density);
-
     if (density < 0.0f) density = 0.0f;
     if (density > 1.0f) density = 1.0f;
 
@@ -190,55 +173,57 @@ glm::vec3 densityColor(float density, float psi, int colorMapMode)
     // Gold
     if (colorMapMode == 0)
     {
-        glm::vec3 low  = glm::vec3(0.25f, 0.10f, 0.00f);
-        glm::vec3 mid  = glm::vec3(1.00f, 0.55f, 0.00f);
-        glm::vec3 high = glm::vec3(1.00f, 0.95f, 0.35f);
+        glm::vec3 low  = glm::vec3(0.45f, 0.22f, 0.02f);
+        glm::vec3 mid  = glm::vec3(1.00f, 0.58f, 0.08f);
+        glm::vec3 high = glm::vec3(1.00f, 0.92f, 0.38f);
 
-        if (density < 0.5f)
-            color = mixColor(low, mid, density / 0.5f);
+        if (density < 0.6f)
+            color = mixColor(low, mid, density / 0.6f);
         else
-            color = mixColor(mid, high, (density - 0.5f) / 0.5f);
+            color = mixColor(mid, high, (density - 0.6f) / 0.4f);
     }
 
     // Plasma
     else if (colorMapMode == 1)
     {
-        glm::vec3 low  = glm::vec3(0.05f, 0.00f, 0.25f);
-        glm::vec3 mid  = glm::vec3(0.85f, 0.10f, 0.85f);
-        glm::vec3 high = glm::vec3(1.00f, 0.85f, 0.10f);
+        glm::vec3 low  = glm::vec3(0.55f, 0.00f, 0.85f);  // purple outer
+        glm::vec3 mid  = glm::vec3(1.00f, 0.00f, 0.85f);  // hot pink
+        glm::vec3 high = glm::vec3(1.00f, 0.85f, 0.15f);  // yellow/orange core
 
-        if (density < 0.5f)
-            color = mixColor(low, mid, density / 0.5f);
+        float t = density;
+
+        if (t < 0.55f)
+            color = mixColor(low, mid, t / 0.45f);
         else
-            color = mixColor(mid, high, (density - 0.5f) / 0.5f);
+            color = mixColor(mid, high, (t - 0.65f) / 0.35f);
     }
 
-    // Viridis-like
+    // Green scientific / Kavang-inspired
     else if (colorMapMode == 2)
     {
-        glm::vec3 low  = glm::vec3(0.05f, 0.10f, 0.35f);
-        glm::vec3 mid  = glm::vec3(0.00f, 0.65f, 0.45f);
-        glm::vec3 high = glm::vec3(0.90f, 1.00f, 0.35f);
+        glm::vec3 low  = glm::vec3(0.06f, 0.38f, 0.24f);
+        glm::vec3 mid  = glm::vec3(0.00f, 0.72f, 0.42f);
+        glm::vec3 high = glm::vec3(0.25f, 0.95f, 0.55f);
 
-        if (density < 0.5f)
-            color = mixColor(low, mid, density / 0.5f);
+        if (density < 0.7f)
+            color = mixColor(low, mid, density / 0.7f);
         else
-            color = mixColor(mid, high, (density - 0.5f) / 0.5f);
+            color = mixColor(mid, high, (density - 0.7f) / 0.3f);
     }
 
     // Phase coloring
     else if (colorMapMode == 3)
     {
         if (psi >= 0.0f)
-            color = glm::vec3(0.0f, density, density);
+            color = glm::vec3(0.0f, 0.55f + 0.45f * density, 0.85f);
         else
-            color = glm::vec3(density, 0.0f, density);
+            color = glm::vec3(0.85f, 0.1f, 0.75f);
     }
 
     // White cloud
     else
     {
-        color = glm::vec3(density);
+        color = glm::vec3(0.65f + 0.35f * density);
     }
 
     return color;
@@ -270,6 +255,7 @@ std::vector<float> generateHydrogenOrbital(
            attempts < maxAttempts)
     {
         attempts++;
+
         float r = randomFloat(0.0f, maxRadius);
         float theta = std::acos(randomFloat(-1.0f, 1.0f));
         float phi = randomFloat(0.0f, 2.0f * PI);
@@ -281,29 +267,27 @@ std::vector<float> generateHydrogenOrbital(
         float psi = hydrogenPsi(state, r, theta, phi);
         float probability = psi * psi;
 
-       
-        float sliceThickness = 0.75f;
-
         if (sliceMode)
         {
             float axisValue = z;
 
-            if (sliceAxis == 0)
-                axisValue = x;
-            else if (sliceAxis == 1)
-                axisValue = y;
-            else
-                axisValue = z;
+            if (sliceAxis == 0) axisValue = x;
+            else if (sliceAxis == 1) axisValue = y;
+            else axisValue = z;
 
             if (std::abs(axisValue) > sliceThickness)
-            {
                 continue;
-            }
         }
 
         if (clippingMode && z > clippingZ)
-        {
             continue;
+
+        if (sphericalCutoutMode)
+        {
+            glm::vec3 p = glm::vec3(x, y, z);
+
+            if (glm::length(p - cutoutCenter) < cutoutRadius)
+                continue;
         }
 
         if (randomFloat(0.0f, maxProbability) < probability)
@@ -311,40 +295,22 @@ std::vector<float> generateHydrogenOrbital(
             float density = probability / maxProbability;
 
             if (density > 1.0f)
-            {
                 density = 1.0f;
-            }
 
-            density = std::sqrt(density);
+            // Softer contrast curve.
+            density = std::pow(density, 0.22f);
 
-            // minimum brightness
-            if (density < 0.35f)
-            {
-                density = 0.35f;
-            }
+            // Do not allow outer particles to become black.
+            if (density < 0.18f)
+                density = 0.18f;
 
             glm::vec3 color = densityColor(density, psi, colorMapMode);
 
-            float distanceFromCenter = std::sqrt(x*x + y*y + z*z);
+            float distanceFromCenter = std::sqrt(x * x + y * y + z * z);
 
-            float fog = 1.0f - distanceFromCenter / maxRadius;
-            if (fog < 0.20f) fog = 0.20f;
-            if (fog > 1.0f) fog = 1.0f;
-
-            color *= fog;
-
-            float shell = std::sin(distanceFromCenter * 0.9f);
-            float shellBoost = 0.85f + 0.15f * shell;
-
-            if (sphericalCutoutMode)
-            {
-                glm::vec3 p = glm::vec3(x, y, z);
-
-                if (glm::length(p - cutoutCenter) < cutoutRadius)
-                {
-                    continue;
-                }   
-            }
+            // Very gentle shell variation only.
+            float shell = std::sin(distanceFromCenter * 0.65f);
+            float shellBoost = 0.96f + 0.04f * shell;
 
             color *= shellBoost;
 
@@ -355,36 +321,34 @@ std::vector<float> generateHydrogenOrbital(
             data.push_back(color.r);
             data.push_back(color.g);
             data.push_back(color.b);
-
         }
     }
 
     if (data.size() < static_cast<size_t>(count * 6))
     {
         std::cout << "Warning: only generated "
-              << data.size() / 6
-              << " points for n="
-              << state.n
-              << ", l="
-              << state.l
-              << ", m="
-              << state.m
-              << "\n";
+                  << data.size() / 6
+                  << " points for n="
+                  << state.n
+                  << ", l="
+                  << state.l
+                  << ", m="
+                  << state.m
+                  << "\n";
     }
 
     if (attempts >= maxAttempts)
     {
         std::cout << "Generation stopped early for state: "
-              << "n=" << state.n
-              << " l=" << state.l
-              << " m=" << state.m
-              << "\n";
+                  << "n=" << state.n
+                  << " l=" << state.l
+                  << " m=" << state.m
+                  << "\n";
     }
 
     std::cout << "Generated points: " << data.size() / 6 << "\n";
 
     return data;
-
 }
 
 float getCameraDistance(const QuantumState& state)
@@ -417,4 +381,3 @@ std::string quantumStateName(const QuantumState& state)
 
     return name;
 }
-

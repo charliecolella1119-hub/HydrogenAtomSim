@@ -14,6 +14,7 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform float particleSize;
+out float viewDepth;
 
 void main()
 {
@@ -22,6 +23,10 @@ void main()
 
     gl_PointSize = particleSize;
     particleColor = color;
+    vec4 viewPos = view * model * vec4(position, 1.0);
+    viewDepth = -viewPos.z;
+
+    gl_Position = projection * viewPos;
 }
 )";
 
@@ -34,7 +39,8 @@ out vec4 FragColor;
 uniform float brightness;
 uniform float alphaScale;
 uniform float lightingStrength;
-uniform float spriteSoftness;
+uniform int particleStyle;
+in float viewDepth;
 
 void main()
 {
@@ -42,27 +48,37 @@ void main()
     float r2 = dot(coord, coord);
 
     if (r2 > 1.0)
+    {
         discard;
+    }
 
     float z = sqrt(1.0 - r2);
-    vec3 normal = normalize(vec3(coord.x, coord.y, z));
 
-    vec3 lightDir = normalize(vec3(-0.4, 0.6, 1.0));
+    if (particleStyle == 0)
+    {
+        // Simple point rendering
+        FragColor = vec4(particleColor, alphaScale);
+    }
+    else if (particleStyle == 1)
+    {
+        float z = sqrt(1.0 - r2);
+        vec3 normal = normalize(vec3(coord.x, coord.y, z));
 
-    float diffuse = max(dot(normal, lightDir), 0.0);
-    float rim = pow(1.0 - z, 2.0);
-    float gaussian = exp(-r2 * spriteSoftness);
+        vec3 lightDir = normalize(vec3(-0.45, 0.55, 1.0));
+        vec3 viewDir = vec3(0.0, 0.0, 1.0);
 
-    vec3 shadedColor =
-        particleColor *
-        brightness *
-        (0.25 + diffuse * lightingStrength);
+        float diffuse = max(dot(normal, lightDir), 0.0);
+        float specular = pow(max(dot(reflect(-lightDir, normal), viewDir), 0.0), 20.0);
 
-    shadedColor += particleColor * rim * 0.8;
+        float edgeFade = smoothstep(1.0, 0.72, r2);
 
-    float alpha = alphaScale * gaussian;
+        float shade = 0.75 + diffuse * 0.35;
 
-    FragColor = vec4(shadedColor, alpha);
+        vec3 finalColor = particleColor * brightness * shade;
+        finalColor += vec3(1.0) * specular * 0.18;
+
+        FragColor = vec4(finalColor, alphaScale * edgeFade);
+    }
 }
 )";
 

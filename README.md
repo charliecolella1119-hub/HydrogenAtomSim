@@ -86,11 +86,11 @@ cmake --build .
 
 ### Particle Rendering Mode
 
-<video src="demo:particle-mode.mp4" controls width="700"></video>
+https://github.com/charliecolella1119-hub/HydrogenAtomSim/raw/main/videos/particle-mode.mp4
 
 ### Volume Ray Marching Mode
 
-<video src="demo:volume-ray-march.mp4" controls width="700"></video>
+https://github.com/charliecolella1119-hub/HydrogenAtomSim/raw/main/videos/volume-ray-march.mp4
 
 ## License
 
