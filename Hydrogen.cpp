@@ -183,50 +183,109 @@ glm::vec3 densityColor(float density, float psi, int colorMapMode)
             color = mixColor(mid, high, (density - 0.6f) / 0.4f);
     }
 
-    // Plasma
+    // Pink Plasma
     else if (colorMapMode == 1)
     {
-        glm::vec3 low  = glm::vec3(0.55f, 0.00f, 0.85f);  // purple outer
-        glm::vec3 mid  = glm::vec3(1.00f, 0.00f, 0.85f);  // hot pink
-        glm::vec3 high = glm::vec3(1.00f, 0.85f, 0.15f);  // yellow/orange core
+        glm::vec3 low  = glm::vec3(0.28f, 0.02f, 0.35f);
+        glm::vec3 mid  = glm::vec3(0.95f, 0.08f, 0.65f);
+        glm::vec3 high = glm::vec3(0.75f, 1.00f, 0.80f);
 
-        float t = density;
-
-        if (t < 0.55f)
-            color = mixColor(low, mid, t / 0.45f);
+        if (density < 0.6f)
+            color = mixColor(low, mid, density / 0.6f);
         else
-            color = mixColor(mid, high, (t - 0.65f) / 0.35f);
+            color = mixColor(mid, high, (density - 0.6f) / 0.4f);
     }
 
-    // Green scientific / Kavang-inspired
+    // Green Viridis
     else if (colorMapMode == 2)
     {
-        glm::vec3 low  = glm::vec3(0.06f, 0.38f, 0.24f);
-        glm::vec3 mid  = glm::vec3(0.00f, 0.72f, 0.42f);
-        glm::vec3 high = glm::vec3(0.25f, 0.95f, 0.55f);
+        glm::vec3 low  = glm::vec3(0.02f, 0.22f, 0.16f);
+        glm::vec3 mid  = glm::vec3(0.00f, 0.62f, 0.36f);
+        glm::vec3 high = glm::vec3(0.72f, 0.95f, 0.70f);
 
-        if (density < 0.7f)
-            color = mixColor(low, mid, density / 0.7f);
+        if (density < 0.6f)
+            color = mixColor(low, mid, density / 0.6f);
         else
-            color = mixColor(mid, high, (density - 0.7f) / 0.3f);
+            color = mixColor(mid, high, (density - 0.6f) / 0.4f);
     }
 
     // Phase coloring
     else if (colorMapMode == 3)
     {
         if (psi >= 0.0f)
-            color = glm::vec3(0.0f, 0.55f + 0.45f * density, 0.85f);
+        {
+            glm::vec3 low  = glm::vec3(0.02f, 0.16f, 0.38f);
+            glm::vec3 mid  = glm::vec3(0.00f, 0.55f, 0.75f);
+            glm::vec3 high = glm::vec3(0.55f, 0.95f, 1.00f);
+
+        if (density < 0.6f)
+            color = mixColor(low, mid, density / 0.6f);
         else
-            color = glm::vec3(0.85f, 0.1f, 0.75f);
+            color = mixColor(mid, high, (density - 0.6f) / 0.4f);
+        }
+        else
+        {
+            glm::vec3 low  = glm::vec3(0.25f, 0.02f, 0.30f);
+            glm::vec3 mid  = glm::vec3(0.72f, 0.05f, 0.70f);
+            glm::vec3 high = glm::vec3(1.00f, 0.45f, 0.90f);
+
+            if (density < 0.6f)
+                color = mixColor(low, mid, density / 0.6f);
+            else
+                color = mixColor(mid, high, (density - 0.6f) / 0.4f);
+        }
     }
 
-    // White cloud
-    else
+    // White / grayscale
+    else if (colorMapMode == 4)
     {
-        color = glm::vec3(0.65f + 0.35f * density);
+        glm::vec3 low  = glm::vec3(0.20f, 0.22f, 0.25f);
+        glm::vec3 mid  = glm::vec3(0.70f, 0.74f, 0.80f);
+        glm::vec3 high = glm::vec3(1.00f, 1.00f, 1.00f);
+
+        if (density < 0.6f)
+            color = mixColor(low, mid, density / 0.6f);
+        else
+            color = mixColor(mid, high, (density - 0.6f) / 0.4f);
+    }
+
+    // Heat Map
+    else if (colorMapMode == 5)
+    {
+        glm::vec3 low   = glm::vec3(0.08f, 0.00f, 0.22f); // deep purple
+        glm::vec3 mid1  = glm::vec3(0.35f, 0.00f, 0.65f); // violet
+        glm::vec3 mid2  = glm::vec3(0.95f, 0.20f, 0.80f); // hot pink
+        glm::vec3 high  = glm::vec3(1.00f, 0.80f, 0.15f); // golden yellow
+        glm::vec3 white = glm::vec3(1.00f, 1.00f, 1.00f); // bright core
+
+        if (density < 0.15f)
+        {
+            color = mixColor(low, low, density / 0.15f);
+        }
+        else if (density < 0.35f)
+        {
+            color = mixColor(low, mid1, density / 0.25f);
+        }
+        else if (density < 0.55f)
+        {
+            color = mixColor(mid1, mid2,
+                         (density - 0.25f) / 0.30f);
+        }
+        else if (density < 0.85f)
+        {
+            color = mixColor(mid2, high,
+                         (density - 0.55f) / 0.30f);
+        }
+        else
+        {
+            color = mixColor(high, white,
+                         (density - 0.85f) / 0.15f);
+        }
     }
 
     return color;
+
+    
 }
 
 std::vector<float> generateHydrogenOrbital(

@@ -32,42 +32,42 @@ bool sphericalCutoutMode = false;
 float cutoutRadius = 3.0f;
 glm::vec3 cutoutCenter = glm::vec3(0.0f);
 
-int sliceAxis = 2;
+int sliceAxis = 2.0f;
 float sliceThickness = 0.75f;
 
 // Box clipping
-bool boxClipMode = false;
+bool boxClipMode = true;
 
-glm::vec3 boxClipCenter = glm::vec3(0.0f);
 glm::vec3 boxClipSize = glm::vec3(8.0f, 8.0f, 8.0f);
+glm::vec3 boxClipCenter = boxClipSize * 0.5f;
 
 // Sampling
-int pointCount = 500000;
+int pointCount =750000;
 
 // Particle rendering
 int particleStyle = 1;
-// 0 = Gaussian
-// 1 = Lit Ball / Sphere Impostor
-// 2 = Bright Core
+// 0 = Gaussian cloud
+// 1 = Lit ball/ sphere impostor
+// 2 = Bright core
 
-float particleSize = 3.0f;
-float ballParticleSize = 3.0f;
+float particleSize = 0.8f;
+float ballParticleSize = 0.62f;
 
-float brightness = 1.25f;
-float alphaScale = 0.65f;
+float brightness = 1.4f;
+float alphaScale = 0.55f;
 float lightingStrength = 1.6f;
-float depthFadeStrength = 2.8f;
-float spriteSoftness = 1.4f;
+float depthFadeStrength = 8.8f;
+float spriteSoftness = 6.0f;
 
 bool additiveBlend = false;
 
 // Flowing probability-current particles
-bool flowingParticlesMode = false;
+bool flowingParticlesMode = true;
 std::vector<float> flowingPoints;
 
-float flowSpeed = 0.8f;
+float flowSpeed = 0.4f;
 float flowConfinement = 0.08f;
-float flowRespawnDistance = 1.5f;
+float flowRespawnDistance = 0.1f;
 
 // Render modes
 int renderMode = 0;
@@ -82,23 +82,17 @@ float volumeZoom = 1.5f;
 float volumeBounds = 4.0f;
 float volumeAutoScale = 1.0f;
 
-// Superposition
-bool superpositionMode = false;
-int n2 = 2;
-int l2 = 1;
-int m2 = 0;
-float superpositionMix = 0.5f;
-float superpositionSpeed = 1.0f;
 
 // Color / visual style
-glm::vec3 backgroundColor = glm::vec3(0.92f, 0.94f, 0.94f);
+glm::vec3 backgroundColor = glm::vec3(0.94f, 0.95f, 0.94f);
 
 int colorMapMode = 2;
 // 0 = Gold
-// 1 = Plasma
+// 1 = Pink
 // 2 = Viridis
 // 3 = Phase
 // 4 = White
+// 5 = Plasma 
 
 // --------------------
 // Helpers
@@ -287,7 +281,7 @@ int main()
 {
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
 
-    QuantumState state = {1, 0, 0};
+    QuantumState state = {4, 3, 0};
 
     if (!glfwInit())
     {
@@ -361,6 +355,8 @@ int main()
         cutoutCenter,
         cutoutRadius
     );
+
+    points = applyBoxClipFilter(points);
 
     initializeFlowingParticles(points);
     updateWindowTitle(window, state, sliceMode, pointCount);
@@ -459,69 +455,12 @@ int main()
         }
 
         // --------------------
-        // Keyboard Controls
-        // --------------------
-
-        static bool keyPressed = false;
-
-        if (!keyPressed)
-        {
-            if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-            {
-                state.n++;
-                updateAtom(window, points, VBO, state);
-                keyPressed = true;
-            }
-            else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-            {
-                state.n--;
-                updateAtom(window, points, VBO, state);
-                keyPressed = true;
-            }
-            else if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-            {
-                state.l++;
-                updateAtom(window, points, VBO, state);
-                keyPressed = true;
-            }
-            else if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-            {
-                state.l--;
-                updateAtom(window, points, VBO, state);
-                keyPressed = true;
-            }
-            else if (glfwGetKey(window, GLFW_KEY_M) == GLFW_PRESS)
-            {
-                state.m++;
-                updateAtom(window, points, VBO, state);
-                keyPressed = true;
-            }
-            else if (glfwGetKey(window, GLFW_KEY_N) == GLFW_PRESS)
-            {
-                state.m--;
-                updateAtom(window, points, VBO, state);
-                keyPressed = true;
-            }
-        }
-    
-
-        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_RELEASE &&
-            glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_RELEASE &&
-            glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_RELEASE &&
-            glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_RELEASE &&
-            glfwGetKey(window, GLFW_KEY_M) == GLFW_RELEASE &&
-            glfwGetKey(window, GLFW_KEY_N) == GLFW_RELEASE)
-        {
-            keyPressed = false;
-        }
-    
-
-        // --------------------
         // ImGui Panel
         // --------------------
 
         bool stateChanged = false;
-
+        
+        ImGui::SetNextWindowSize(ImVec2(300, 680), ImGuiCond_Once);
         ImGui::Begin("Hydrogen Controls");
 
         const char* renderModes[] =
@@ -536,175 +475,7 @@ int main()
             rotationY = 0.0f;
         }
 
-        if (ImGui::Button("Front View"))
-        {
-            rotationX = 0.0f;
-            rotationY = 0.0f;
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Side View"))
-        {
-            rotationX = 0.0f;
-            rotationY = glm::radians(90.0f);
-        }
-
-        ImGui::SameLine();
-
-        if (ImGui::Button("Top View"))
-        {
-            rotationX = glm::radians(90.0f);
-            rotationY = 0.0f;
-        }
-
-        ImGui::Combo("Render Mode",
-                     &renderMode,
-                     renderModes,
-                     IM_ARRAYSIZE(renderModes));
-
-        if (ImGui::CollapsingHeader("Quantum State", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            stateChanged |= ImGui::SliderInt("n", &state.n, 1, 6);
-            validateQuantumState(state);
-
-            stateChanged |= ImGui::SliderInt("l", &state.l, 0, state.n - 1);
-            validateQuantumState(state);
-
-            stateChanged |= ImGui::SliderInt("m", &state.m, -state.l, state.l);
-            validateQuantumState(state);
-
-            ImGui::Text("State: %s", quantumStateName(state).c_str());
-            ImGui::Text("Energy: %.3f eV", hydrogenEnergyEV(state.n));
-        }
-
-        if (ImGui::CollapsingHeader("Particle Rendering", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            ImGui::SliderFloat("Particle Size", &particleSize, 2.0f, 150.0f);
-            ImGui::SliderFloat("Brightness", &brightness, 0.1f, 10.0f);
-            ImGui::SliderFloat("Alpha", &alphaScale, 0.01f, 2.0f);
-            ImGui::SliderFloat("Glow", &lightingStrength, 0.1f, 10.0f);
-            ImGui::SliderFloat("Depth Fade", &depthFadeStrength, 0.0f, 4.0f);
-            ImGui::SliderFloat("Sprite Softness", &spriteSoftness, 0.5f, 12.0f);
-            ImGui::Checkbox("Additive Blending", &additiveBlend);
-        }
-
-        if (ImGui::CollapsingHeader("Flowing Particles", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            ImGui::Checkbox("Flowing Probability Particles", &flowingParticlesMode);
-
-            ImGui::SliderFloat("Flow Speed",
-                               &flowSpeed,
-                               0.0f,
-                               5.0f);
-
-            ImGui::SliderFloat("Flow Confinement",
-                               &flowConfinement,
-                               0.0f,
-                               1.0f);
-
-            ImGui::SliderFloat("Flow Respawn Distance",
-                               &flowRespawnDistance,
-                               0.1f,
-                               5.0f);
-
-            ImGui::SliderFloat("Ball Particle Size",
-                               &ballParticleSize,
-                               0.5f,
-                               10.0f);
-
-            if (state.m == 0)
-            {
-                ImGui::Text("m = 0: no azimuthal probability current");
-            }
-        }
-
-        if (ImGui::CollapsingHeader("Visual Presets", ImGuiTreeNodeFlags_DefaultOpen))
-        {
-            if (ImGui::Button("Kavang Inspired"))
-            {
-                particleStyle = 1;          // Soft sphere
-                particleSize = 4.0f;
-                ballParticleSize = 4.0f;
-
-                brightness = 1.15f;
-                alphaScale = 0.55f;
-                lightingStrength = 1.25f;
-                spriteSoftness = 1.8f;
-
-                colorMapMode = 1;           // Phase
-                backgroundColor = glm::vec3(0.02f, 0.04f, 0.05f);
-
-                additiveBlend = false;
-            }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("MinutePhysics Bright"))
-            {
-                particleStyle = 1;          // Soft sphere
-                particleSize = 4.0f;
-                ballParticleSize = 4.0f;
-
-                brightness = 1.35f;
-                alphaScale = 0.65f;
-                lightingStrength = 1.45f;
-                spriteSoftness = 1.6f;
-
-                colorMapMode = 2;           // Viridis / green
-                backgroundColor = glm::vec3(0.94f, 0.95f, 0.94f);
-
-                additiveBlend = false;
-            }
-
-            if (ImGui::Button("Soft Scientific"))
-            {
-                particleStyle = 1;          // Bright core / glow
-                particleSize = 4.0f;
-                ballParticleSize = 4.0f;
-
-                brightness = 1.28f;
-                alphaScale = 0.6f;
-                lightingStrength = 1.3f;
-                spriteSoftness = 1.8f;
-
-                colorMapMode = 0;           // Gold
-                backgroundColor = glm::vec3(0.94f, 0.95f, 0.94f);
-
-                additiveBlend = true;
-            }
-        }
-
-        if (ImGui::CollapsingHeader("Volume Ray Marching"))
-        {
-            ImGui::SliderFloat("Volume Scale", &volumeScale, 0.5f, 8.0f);
-            ImGui::SliderFloat("Volume Auto Scale", &volumeAutoScale, 0.2f, 3.0f);
-            ImGui::SliderFloat("Volume Zoom", &volumeZoom, 0.25f, 8.0f);
-            ImGui::SliderFloat("Volume Brightness", &volumeBrightness, 0.1f, 20.0f);
-            ImGui::SliderFloat("Volume Density", &volumeDensity, 0.1f, 10.0f);
-            ImGui::SliderFloat("Volume Bounds", &volumeBounds, 1.0f, 12.0f);
-        }
-
-        if (ImGui::CollapsingHeader("Color"))
-        {
-            const char* colorMaps[] =
-            {
-                "Gold",
-                "Plasma",
-                "Viridis",
-                "Phase",
-                "White"
-            };
-
-            stateChanged |= ImGui::Combo("Color Map",
-                                         &colorMapMode,
-                                         colorMaps,
-                                         IM_ARRAYSIZE(colorMaps));
-
-            ImGui::ColorEdit3("Background", &backgroundColor.x);
-        }
-
-       bool previousBoxClipMode = boxClipMode;
+        bool previousBoxClipMode = boxClipMode;
 
         if (ImGui::Checkbox("Box Clip Mode", &boxClipMode))
         {
@@ -733,8 +504,167 @@ int main()
                                         -20.0f,
                                         20.0f);
         }
+
+        ImGui::Combo("Render Mode",
+                     &renderMode,
+                     renderModes,
+                     IM_ARRAYSIZE(renderModes));
+
+        if (ImGui::CollapsingHeader("Quantum State", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            stateChanged |= ImGui::SliderInt("n", &state.n, 1, 6);
+            validateQuantumState(state);
+
+            stateChanged |= ImGui::SliderInt("l", &state.l, 0, state.n - 1);
+            validateQuantumState(state);
+
+            stateChanged |= ImGui::SliderInt("m", &state.m, -state.l, state.l);
+            validateQuantumState(state);
+
+            ImGui::Text("State: %s", quantumStateName(state).c_str());
+            ImGui::Text("Energy: %.3f eV", hydrogenEnergyEV(state.n));
+        }
+
+        if (ImGui::CollapsingHeader("Color"))
+        {
+            const char* colorMaps[] =
+            {
+                "Gold",
+                "Plasma",
+                "Viridis",
+                "Phase",
+                "White",
+                "Heat Map"
+            };
+
+            stateChanged |= ImGui::Combo("Color Map",
+                                         &colorMapMode,
+                                         colorMaps,
+                                         IM_ARRAYSIZE(colorMaps));
+
+            ImGui::ColorEdit3("Background", &backgroundColor.x);
+        }
+
+        if (ImGui::CollapsingHeader("Particle Rendering", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            const char* particleStyles[] =
+            {
+                "Gaussian",
+                "Lit Ball",
+                "Bright Core"
+            };             
+
+            ImGui::Combo("Particle Style",
+                &particleStyle,
+                particleStyles,
+                IM_ARRAYSIZE(particleStyles));
+
+            ImGui::SliderFloat("Particle Size", &particleSize, 0.01f, 15.0f);
+            ImGui::SliderFloat("Brightness", &brightness, 0.05f, 10.0f);
+            ImGui::SliderFloat("Alpha", &alphaScale, 0.01f, 2.0f);
+            ImGui::SliderFloat("Glow", &lightingStrength, 0.1f, 10.0f);
+            ImGui::SliderFloat("Depth Fade", &depthFadeStrength, 0.0f, 4.0f);
+            ImGui::SliderFloat("Sprite Softness", &spriteSoftness, 0.5f, 12.0f);
+            ImGui::Checkbox("Additive Blending", &additiveBlend);
+        }
+
+        if (ImGui::CollapsingHeader("Flowing Particles", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            ImGui::Checkbox("Flowing Probability Particles", &flowingParticlesMode);
+
+            ImGui::SliderFloat("Flow Speed",
+                               &flowSpeed,
+                               0.0f,
+                               5.0f);
+
+            ImGui::SliderFloat("Flow Confinement",
+                               &flowConfinement,
+                               0.0f,
+                               1.0f);
+
+            ImGui::SliderFloat("Flow Respawn Distance",
+                               &flowRespawnDistance,
+                               0.1f,
+                               2.0f);
+
+            ImGui::SliderFloat("Ball Particle Size",
+                               &ballParticleSize,
+                               0.05f,
+                               5.0f);
+
+            if (state.m == 0)
+            {
+                ImGui::Text("m = 0: no azimuthal probability current");
+            }
+        }
+
+        if (ImGui::CollapsingHeader("Visual Particle Presets", ImGuiTreeNodeFlags_DefaultOpen))
+        {
+            if (ImGui::Button("Heat Map"))
+            {
+                particleStyle = 1;          // Soft sphere
+                particleSize = 0.8f;
+                ballParticleSize = 0.8f;
+
+                brightness = 0.75f;
+                alphaScale = 0.45f;
+                lightingStrength = 1.25f;
+                spriteSoftness = 1.0f;
+
+                colorMapMode = 5;           //Heat Map
+                backgroundColor = glm::vec3(0.02f, 0.04f, 0.05f);
+
+                additiveBlend = true;
+            }
+
+            ImGui::SameLine();
+
+            if (ImGui::Button("Bright Viridis"))
+            {
+                particleStyle = 1;          // Soft sphere
+                particleSize = 0.8f;
+                ballParticleSize = 0.62f;
+
+                brightness = 1.65f;
+                alphaScale = 0.55f;
+                lightingStrength = 1.45f;
+                spriteSoftness = 6.6f;
+
+                colorMapMode = 2;           // Viridis / green
+                backgroundColor = glm::vec3(0.94f, 0.95f, 0.94f);
+
+                additiveBlend = false;
+            }
+
+            if (ImGui::Button("Soft Scientific"))
+            {
+                particleStyle = 1;          // Soft sphere
+                particleSize = 0.8f;
+                ballParticleSize = 0.62f;
+
+                brightness = 1.45f;
+                alphaScale = 0.589f;
+                lightingStrength = 1.3f;
+                spriteSoftness = 6.55f;
+
+                colorMapMode = 0;           // Gold
+                backgroundColor = glm::vec3(0.94f, 0.95f, 0.94f);
+
+                additiveBlend = true;
+            }
+        }
+
+        if (ImGui::CollapsingHeader("Volume Ray Marching"))
+        {
+            ImGui::SliderFloat("Volume Scale", &volumeScale, 0.5f, 8.0f);
+            ImGui::SliderFloat("Volume Auto Scale", &volumeAutoScale, 0.2f, 3.0f);
+            ImGui::SliderFloat("Volume Zoom", &volumeZoom, 0.25f, 8.0f);
+            ImGui::SliderFloat("Volume Brightness", &volumeBrightness, 0.1f, 20.0f);
+            ImGui::SliderFloat("Volume Density", &volumeDensity, 0.1f, 10.0f);
+            ImGui::SliderFloat("Volume Bounds", &volumeBounds, 1.0f, 12.0f);
+        }
         
-        if (ImGui::CollapsingHeader("Slicing / Clipping"))
+        if (ImGui::CollapsingHeader("Manual Slicing / Clipping"))
         {
             stateChanged |= ImGui::Checkbox("Slice Mode", &sliceMode);
 
@@ -815,26 +745,14 @@ int main()
                              1280.0f / 720.0f,
                              0.1f,
                              100.0f);
-
-        const char* particleStyles[] =
-        {
-            "Gaussian",
-            "Soft Sphere",
-            "Bright Core"
-        };
-
-        ImGui::Combo("Particle Style",
-             &particleStyle,
-             particleStyles,
-             IM_ARRAYSIZE(particleStyles));
-
+        
         if (particleStyle == 1)
         {
             glEnable(GL_DEPTH_TEST);
             glDepthMask(GL_TRUE);
             glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         }
-        else
+        else 
         {
             glDepthMask(GL_FALSE);
 
@@ -1001,23 +919,6 @@ int main()
 
             glUniform1f(glGetUniformLocation(volumeShaderProgram, "cutoutRadius"),
                         cutoutRadius);
-
-            float phase =
-                static_cast<float>(glfwGetTime()) *
-                superpositionSpeed;
-
-            glUniform1i(glGetUniformLocation(volumeShaderProgram, "superpositionMode"),
-                        superpositionMode);
-
-            glUniform1i(glGetUniformLocation(volumeShaderProgram, "n2"), n2);
-            glUniform1i(glGetUniformLocation(volumeShaderProgram, "l2"), l2);
-            glUniform1i(glGetUniformLocation(volumeShaderProgram, "m2"), m2);
-
-            glUniform1f(glGetUniformLocation(volumeShaderProgram, "superpositionMix"),
-                        superpositionMix);
-
-            glUniform1f(glGetUniformLocation(volumeShaderProgram, "superpositionPhase"),
-                        phase);
 
             glBindVertexArray(quadVAO);
             glDrawArrays(GL_TRIANGLES, 0, 6);

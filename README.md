@@ -84,13 +84,15 @@ cmake --build .
 
 ## Demo
 
-### Particle Rendering Mode
+### Particle Rendering Color Maps
 
-https://github.com/charliecolella1119-hub/HydrogenAtomSim/raw/main/videos/particle-mode.mp4
+<p align="center">
+  <img src="assets/screenshots/gold.png" width="32%">
+  <img src="assets/screenshots/viridis.png" width="32%">
+  <img src="assets/screenshots/heatmap.png" width="32%">
+</p>
 
-### Volume Ray Marching Mode
-
-https://github.com/charliecolella1119-hub/HydrogenAtomSim/raw/main/videos/volume-ray-march.mp4
+*Gold, Viridis, and Heat Map particle-rendering presets for the 4f hydrogen orbital.*
 
 ## License
 

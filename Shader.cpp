@@ -9,24 +9,35 @@ layout (location = 0) in vec3 position;
 layout (location = 1) in vec3 color;
 
 out vec3 particleColor;
+out float viewDepth;
 
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 uniform float particleSize;
-out float viewDepth;
 
 void main()
 {
-    gl_Position =
-        projection * view * model * vec4(position, 1.0);
-
-    gl_PointSize = particleSize;
-    particleColor = color;
+    // World -> View
     vec4 viewPos = view * model * vec4(position, 1.0);
+
+    // View -> Clip
+    gl_Position = projection * viewPos;
+
+    // Store depth for fog/lighting
     viewDepth = -viewPos.z;
 
-    gl_Position = projection * viewPos;
+    // Pass particle color
+    particleColor = color;
+
+    // Make particles grow when camera gets closer
+    float distanceScale =
+        1.0 / sqrt(max(abs(viewPos.z), 0.1));
+
+    gl_PointSize =
+        particleSize *
+        distanceScale *
+        28.0;
 }
 )";
 
@@ -39,8 +50,13 @@ out vec4 FragColor;
 uniform float brightness;
 uniform float alphaScale;
 uniform float lightingStrength;
+uniform float spriteSoftness;
+
 uniform int particleStyle;
-in float viewDepth;
+// 0 = Gaussian cloud
+// 1 = Lit ball
+// 2 = Bright core
+// 3 = Kavang disc
 
 void main()
 {
@@ -52,32 +68,85 @@ void main()
         discard;
     }
 
-    float z = sqrt(1.0 - r2);
-
+    // --------------------
+    // 0: Gaussian cloud
+    // --------------------
     if (particleStyle == 0)
     {
-        // Simple point rendering
-        FragColor = vec4(particleColor, alphaScale);
+        float gaussian = exp(-r2 * spriteSoftness);
+
+        vec3 color =
+            particleColor *
+            brightness *
+            gaussian;
+
+        float alpha =
+            alphaScale *
+            gaussian;
+
+        FragColor = vec4(color, alpha);
     }
+
+    // --------------------
+    // 1: Lit ball / sphere impostor
+    // --------------------
     else if (particleStyle == 1)
     {
         float z = sqrt(1.0 - r2);
-        vec3 normal = normalize(vec3(coord.x, coord.y, z));
 
+        vec3 normal = normalize(vec3(coord.x, coord.y, z));
         vec3 lightDir = normalize(vec3(-0.45, 0.55, 1.0));
         vec3 viewDir = vec3(0.0, 0.0, 1.0);
 
-        float diffuse = max(dot(normal, lightDir), 0.0);
-        float specular = pow(max(dot(reflect(-lightDir, normal), viewDir), 0.0), 20.0);
+        float diffuse =
+            max(dot(normal, lightDir), 0.0);
 
-        float edgeFade = smoothstep(1.0, 0.72, r2);
+        vec3 reflectDir =
+            reflect(-lightDir, normal);
 
-        float shade = 0.75 + diffuse * 0.35;
+        float specular =
+            pow(max(dot(viewDir, reflectDir), 0.0), 24.0);
 
-        vec3 finalColor = particleColor * brightness * shade;
-        finalColor += vec3(1.0) * specular * 0.18;
+        float edgeFade =
+            smoothstep(1.0, 0.65, r2);
 
-        FragColor = vec4(finalColor, alphaScale * edgeFade);
+        float shade =
+            0.80 +
+            diffuse * 0.30;
+
+        vec3 color =
+            particleColor *
+            brightness *
+            shade;
+
+        color += vec3(1.0) * specular * 0.16;
+
+        FragColor =
+            vec4(color,
+                 alphaScale * edgeFade);
+    }
+
+    // --------------------
+    // 2: Bright core / glow sprite
+    // --------------------
+    else if (particleStyle == 2)
+    {
+        float core =
+            exp(-r2 * spriteSoftness * 2.2);
+
+        float halo =
+            exp(-r2 * spriteSoftness * 0.45);
+
+        vec3 color =
+            particleColor *
+            brightness *
+            (core * 2.2 + halo * 0.65);
+
+        float alpha =
+            alphaScale *
+            clamp(core + halo * 0.45, 0.0, 1.0);
+
+        FragColor = vec4(color, alpha);
     }
 }
 )";
