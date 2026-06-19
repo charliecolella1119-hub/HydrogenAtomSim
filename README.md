@@ -87,12 +87,14 @@ cmake --build .
 ### Particle Rendering Color Maps
 
 <p align="center">
-  <img src="assets/screenshots/gold.png" width="32%">
-  <img src="assets/screenshots/viridis.png" width="32%">
-  <img src="assets/screenshots/heatmap.png" width="32%">
+  <img src="assets/screenshots/gold.png" width="32%" alt="Gold color map">
+  <img src="assets/screenshots/viridis.png" width="32%" alt="Viridis color map">
+  <img src="assets/screenshots/heatmap.png" width="32%" alt="Heat map color map">
 </p>
 
-*Gold, Viridis, and Heat Map particle-rendering presets for the 4f hydrogen orbital.*
+<p align="center">
+  <em>Gold, Viridis, and Heat Map particle-rendering presets for a 4f hydrogen orbital.</em>
+</p>
 
 ## License
 
