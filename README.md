@@ -100,9 +100,13 @@ cmake --build .
 ### Particle Rendering Color Maps
 
 <p align="center">
+  <img src="assets/screenshots/heatmap.png" width="100%" alt="Heat map color map">
+</p>
+
+<p align="center">
   <img src="assets/screenshots/gold.png" width="32%" alt="Gold color map">
   <img src="assets/screenshots/viridis.png" width="32%" alt="Viridis color map">
-  <img src="assets/screenshots/heatmap.png" width="32%" alt="Heat map color map">
+  <img src="assets/screenshots/violet.png" width="32%" alt="Violet color map">
 </p>
 
 <p align="center">
