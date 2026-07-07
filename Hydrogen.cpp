@@ -183,12 +183,12 @@ glm::vec3 densityColor(float density, float psi, int colorMapMode)
             color = mixColor(mid, high, (density - 0.6f) / 0.4f);
     }
 
-    // Pink Plasma
+    // Violet
     else if (colorMapMode == 1)
     {
-        glm::vec3 low  = glm::vec3(0.28f, 0.02f, 0.35f);
-        glm::vec3 mid  = glm::vec3(0.95f, 0.08f, 0.65f);
-        glm::vec3 high = glm::vec3(0.75f, 1.00f, 0.80f);
+        glm::vec3 low  = glm::vec3(0.035f, 0.020f, 0.260f);
+        glm::vec3 mid  = glm::vec3(0.420f, 0.080f, 0.920f);
+        glm::vec3 high = glm::vec3(0.700f, 0.880f, 1.000f);
 
         if (density < 0.6f)
             color = mixColor(low, mid, density / 0.6f);

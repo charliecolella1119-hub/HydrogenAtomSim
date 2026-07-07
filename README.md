@@ -16,10 +16,23 @@ is rendered as a three-dimensional particle cloud using OpenGL and GLFW.
 
 Users can interactively explore different hydrogen orbitals by changing the principal, angular momentum, and magnetic quantum numbers.
 
+The particle renderer also includes a GPU ray-traced sphere mode adapted from
+the companion CPU path tracer. Each fragment reconstructs a camera ray,
+intersects it analytically with a particle sphere, shades the hit with a compact
+physically inspired material model, and writes the true sphere-surface depth.
+This keeps the simulator interactive at particle-cloud scale while producing
+round silhouettes, stable highlights, and correct particle occlusion.
+
 ## Features
 
 - Hydrogen orbital visualization with quantum numbers n, l, m
 - Particle rendering mode
+- Real-time analytic ray-traced particle spheres with per-pixel depth and material controls
+- Floating-point HDR scene rendering with adjustable bright-pass bloom
+- Depth-aware ambient occlusion for stronger particle clustering and shell definition
+- GPU-resident probability-current animation for `m != 0` states, with no per-frame CPU particle loop or buffer upload
+- Roughness-aware sphere lighting with warm key light, cool fill light, rim illumination, and hemispheric environment reflections
+- Performance-tuned sphere lighting, four-tap post effects, and adjustable GPU animated-particle fraction
 - Volume ray marching mode
 - Flowing probability-current particle mode
 - Color maps
